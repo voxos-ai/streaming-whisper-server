@@ -1,0 +1,3 @@
+*.wav
+LLM/whisper_tiny_ct/
+*.txt
