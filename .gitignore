@@ -1,3 +1,5 @@
 *.wav
 LLM/whisper_tiny_ct/
 *.txt
+.env
+__pycache__/
