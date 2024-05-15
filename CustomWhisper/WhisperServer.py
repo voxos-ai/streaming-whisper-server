@@ -8,10 +8,11 @@ import torch
 import numpy as np
 from websockets.sync.server import serve
 from websockets.exceptions import ConnectionClosed
-from whisper_live.vad import VoiceActivityDetector
-from whisper_live.transcriber import WhisperModel
-from whisper_live.server import ServeClientBase, ClientManager
-from whisper_live.HypothesisBuffer import HypothesisBufferPrefix
+from CustomWhisper.whisper_live.vad import VoiceActivityDetector
+from CustomWhisper.whisper_live.transcriber import WhisperModel
+from CustomWhisper.whisper_live.server import ServeClientBase, ClientManager
+from CustomWhisper.whisper_live.HypothesisBuffer import HypothesisBufferPrefix
+import argparse
 
 
 
@@ -58,6 +59,8 @@ class TranscriptionServer:
         frame_data = websocket.recv()
         if frame_data == b"END_OF_AUDIO":
             return False
+
+
         return np.frombuffer(frame_data, dtype=np.float32)
 
     def handle_new_connection(self, websocket, faster_whisper_custom_model_path):
@@ -93,6 +96,8 @@ class TranscriptionServer:
         if frame_np is False:
             # if self.backend == "tensorrt":
             #     client.set_eos(True)
+            client.disconnect()
+            # websocket.close()
             return False
 
         # if self.backend == "tensorrt":
@@ -265,6 +270,19 @@ class ServeClientFasterWhisper(ServeClientBase):
         )
         self.use_vad = use_vad
 
+
+        # UTTRENCE END COUNT
+        self.uttrence_end_count = 0
+        self.uttrence_bool = False
+        self.start_speeking = False
+
+
+
+        # exp
+        self.prev_timestamp_offset = 0
+        self.prev_timestamp_offset_set:bool = False
+
+
         # HYPOTHESIS BUFFER
         self.hypothesis_buffer:HypothesisBufferPrefix = HypothesisBufferPrefix()
         # self.buffer_time_offset:int = 0
@@ -349,12 +367,13 @@ class ServeClientFasterWhisper(ServeClientBase):
         print("-----------------------------")
         print(result)
         print(info)
-        
-        o:tuple = ((ret.start,ret.end,ret.text) for ret in result)
-        self.hypothesis_buffer.insert(o,self.timestamp_offset)
-        o = self.hypothesis_buffer.flush()
-        print(self.timestamp_offset)
-        print(o)
+
+
+        # o:tuple = ((ret.start,ret.end,ret.text) for ret in result)
+        # self.hypothesis_buffer.insert(o,self.timestamp_offset)
+        # o = self.hypothesis_buffer.flush()
+        # print(result)
+        # print(o)
         print("-----------------------------")
         if self.language is None and info is not None:
             self.set_language(info)
@@ -385,6 +404,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         if len(self.text) and self.text[-1] != '':
             if time.time() - self.t_start > self.add_pause_thresh:
                 self.text.append('')
+            
         return segments
 
     def handle_transcription_output(self, result, duration):
@@ -427,6 +447,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         while True:
             if self.exit:
                 logging.info("Exiting speech to text thread")
+                self.websocket.close()
                 break
 
             if self.frames_np is None:
@@ -442,16 +463,37 @@ class ServeClientFasterWhisper(ServeClientBase):
                 result = self.transcribe_audio(input_sample)
 
                 if result is None or self.language is None:
+                    if self.prev_timestamp_offset_set == False:
+                        self.prev_timestamp_offset = self.timestamp_offset 
+                        self.prev_timestamp_offset_set = True
                     self.timestamp_offset += duration
                     time.sleep(0.25)    # wait for voice activity, result is None when no voice activity
+                    print(self.timestamp_offset,self.prev_timestamp_offset)
+                    print(self.timestamp_offset - self.prev_timestamp_offset)
+
+                    if self.start_speeking:
+                        if self.timestamp_offset - self.prev_timestamp_offset > 2:
+                            if self.uttrence_bool == False:
+                                self.uttrence_end()
+                                self.uttrence_bool = True
+                                # if self.timestamp_offset - self.prev_timestamp_offset > 5:
+                                #     self.disconnect()
+                        if self.timestamp_offset - self.prev_timestamp_offset > 10:
+                            if self.uttrence_bool == False:
+                                self.uttrence_end()
+                                self.uttrence_bool = True
                     continue
+                else:
+                    self.start_speeking = True
+                    self.prev_timestamp_offset_set = False
+                    self.uttrence_bool = False
                 self.handle_transcription_output(result, duration)
 
             except Exception as e:
                 logging.error(f"[ERROR]: Failed to transcribe audio chunk: {e}")
                 time.sleep(0.01)
 
-    def format_segment(self, start, end, text):
+    def format_segment(self, start:float, end:float, text:str):
         """
         Formats a transcription segment with precise start and end times alongside the transcribed text.
 
@@ -547,11 +589,20 @@ class ServeClientFasterWhisper(ServeClientBase):
 
 if __name__ == "__main__":
     server = TranscriptionServer()
-    print("server is running at port 9090 at 0.0.0.0")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', '-p',
+                        type=int,
+                        default=9090,
+                        help="Websocket port to run the server on.")
+    parser.add_argument('--faster_whisper_custom_model_path', '-fw',
+                        type=str, default=None,
+                        help="Custom Faster Whisper Model")
+    args = parser.parse_args()
+    print("server is running at port 9000 at 0.0.0.0")
     server.run(
         "0.0.0.0",
-        port=9090,
+        port=args.port,
         backend="faster_whisper",
-        faster_whisper_custom_model_path="./LLM/whisper_tiny_ct"
+        faster_whisper_custom_model_path=args.faster_whisper_custom_model_path
     )
     
