@@ -3,19 +3,15 @@ import time
 import threading
 import json
 import functools
-import logging
 import torch
 import numpy as np
 from websockets.sync.server import serve
 from websockets.exceptions import ConnectionClosed
-from whisper_live.vad import VoiceActivityDetector
-from whisper_live.transcriber import WhisperModel
-try:
-    from whisper_live.transcriber_tensorrt import WhisperTRTLLM
-except Exception:
-    pass
+from .vad import VoiceActivityDetector
+from .transcriber import WhisperModel
+from CustomWhisper.logger_config import configure_logger
 
-logging.basicConfig(level=logging.INFO)
+logging = configure_logger(__name__)
 
 
 class ClientManager:
@@ -405,8 +401,10 @@ class ServeClientBase(object):
 
         """
         self.lock.acquire()
+
         if self.frames_np is not None and self.frames_np.shape[0] > 45*self.RATE:
             self.frames_offset += 30.0
+            logging.info("added in the frames np buffer")
             self.frames_np = self.frames_np[int(30*self.RATE):]
             # check timestamp offset(should be >= self.frame_offset)
             # this basically means that there is no speech as timestamp offset hasnt updated

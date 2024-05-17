@@ -1,11 +1,14 @@
 import math
 import time
-
 import torch as th
 from torch import nn
 from torch.nn import functional as F
 from .decorator import capture_init
 from .utils import upsample2, downsample2
+from CustomWhisper.logger_config import configure_logger
+
+
+logger = configure_logger(__name__)
 
 class BLSTM(nn.Module):
     def __init__(self, dim, layers=2, bi=True):
@@ -154,3 +157,14 @@ class Demucs(nn.Module):
 
         x = x[..., :length]
         return std * x
+
+def LoadModel(path:str="./NoiseWeights/model.th") -> Demucs:
+    # it can be modify to load weight once
+    try:
+        wt_model = th.load(path)
+    except Exception as e:
+        logger.error(f"not able to load denoise model at path = {path} ERROR:[{e}]")
+        return None
+    model = Demucs()
+    model.load_state_dict(wt_model)
+    return model

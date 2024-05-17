@@ -3,3 +3,4 @@ LLM/whisper_tiny_ct/
 *.txt
 .env
 __pycache__/
+*.py

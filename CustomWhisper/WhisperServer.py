@@ -3,7 +3,6 @@ import time
 import threading
 import json
 import functools
-import logging
 import torch
 import numpy as np
 from websockets.sync.server import serve
@@ -12,23 +11,35 @@ from CustomWhisper.whisper_live.vad import VoiceActivityDetector
 from CustomWhisper.whisper_live.transcriber import WhisperModel
 from CustomWhisper.whisper_live.server import ServeClientBase, ClientManager
 from CustomWhisper.whisper_live.HypothesisBuffer import HypothesisBufferPrefix
-import argparse
+from .denoise import LoadModel, Demucs, BasicInferenceMechanism
+from .logger_config import configure_logger
 
 
+logger = configure_logger(__name__)
 
 class TranscriptionServer:
     RATE = 16000
-
+    @staticmethod
+    def bytes_to_float_array(audio:np.ndarray):
+        return audio.astype(np.float32) / 32768.0
     def __init__(self):
         self.client_manager = ClientManager()
         self.no_voice_activity_chunks = 0
         self.use_vad = True
-        print("TranscriptionServer is created")
+        self.denoise = False
+        if self.denoise:
+            self.noise_deduction_model:Demucs = LoadModel()
+            self.infrence_mech:BasicInferenceMechanism = BasicInferenceMechanism(self.noise_deduction_model)
+            
+        else:
+            self.noise_deduction_model = None
+            self.infrence_mech = None
+        logger.info("TranscriptionServer is created")
 
     def initialize_client(self, websocket, options, faster_whisper_custom_model_path):
         # checking the model
         if faster_whisper_custom_model_path is not None and os.path.exists(faster_whisper_custom_model_path):
-            logging.info(f"Using custom model {faster_whisper_custom_model_path}")
+            logger.info(f"Using custom model {faster_whisper_custom_model_path}")
             options["model"] = faster_whisper_custom_model_path
         
         # making the FasterWhisper server
@@ -42,7 +53,7 @@ class TranscriptionServer:
             vad_parameters=options.get("vad_parameters"),
             use_vad=self.use_vad,
         )
-        logging.info("Running faster_whisper backend.")
+        logger.info("Running faster_whisper backend.")
 
         self.client_manager.add_client(websocket, client)
 
@@ -60,12 +71,19 @@ class TranscriptionServer:
         if frame_data == b"END_OF_AUDIO":
             return False
 
-
-        return np.frombuffer(frame_data, dtype=np.float32)
+        audio = np.frombuffer(frame_data, dtype=np.float32)
+        if self.denoise:
+            logger.info("denoising voice")
+            out = self.infrence_mech(audio)
+            logger.info(f"denoising voice {out}")
+            return out
+        else:
+            logger.info(audio)
+            return audio
 
     def handle_new_connection(self, websocket, faster_whisper_custom_model_path):
         try:
-            logging.info("New client connected")
+            logger.info("New client connected")
             options = websocket.recv()
             options = json.loads(options)
             self.use_vad = options.get('use_vad')
@@ -79,34 +97,24 @@ class TranscriptionServer:
             return True
         
         except json.JSONDecodeError:
-            logging.error("Failed to decode JSON from client")
+            logger.error("Failed to decode JSON from client")
             return False
         
         except ConnectionClosed:
-            logging.info("Connection closed by client")
+            logger.info("Connection closed by client")
             return False
         
         except Exception as e:
-            logging.error(f"Error during new connection initialization: {str(e)}")
+            logger.error(f"Error during new connection initialization: {str(e)}")
             return False
 
     def process_audio_frames(self, websocket):
         frame_np = self.get_audio_from_websocket(websocket)
         client:ServeClientFasterWhisper = self.client_manager.get_client(websocket)
         if frame_np is False:
-            # if self.backend == "tensorrt":
-            #     client.set_eos(True)
             client.disconnect()
-            # websocket.close()
             return False
 
-        # if self.backend == "tensorrt":
-        #     voice_active = self.voice_activity(websocket, frame_np)
-        #     if voice_active:
-        #         self.no_voice_activity_chunks = 0
-        #         client.set_eos(False)
-        #     if self.use_vad and not voice_active:
-        #         return True
 
         client.add_frames(frame_np)
         return True
@@ -149,9 +157,9 @@ class TranscriptionServer:
                 if not self.process_audio_frames(websocket):
                     break
         except ConnectionClosed:
-            logging.info("Connection closed by client")
+            logger.info("Connection closed by client")
         except Exception as e:
-            logging.error(f"Unexpected error: {str(e)}")
+            logger.error(f"Unexpected error: {str(e)}")
         finally:
             if self.client_manager.get_client(websocket):
                 self.cleanup(websocket)
@@ -179,7 +187,8 @@ class TranscriptionServer:
             host,
             port
         ) as server:
-            print("runing the server")
+            logger.info("runing the server")
+            logger.info(f"with port no: {port} and host {host}")
             server.serve_forever()
 
     def voice_activity(self, websocket, frame_np):
@@ -337,7 +346,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         """
         if info.language_probability > 0.5:
             self.language = info.language
-            logging.info(f"Detected language {self.language} with probability {info.language_probability}")
+            logger.info(f"Detected language {self.language} with probability {info.language_probability}")
             self.websocket.send(json.dumps(
                 {"uid": self.client_uid, "language": self.language, "language_prob": info.language_probability}))
 
@@ -364,17 +373,8 @@ class ServeClientFasterWhisper(ServeClientBase):
             task=self.task,
             vad_filter=self.use_vad,
             vad_parameters=self.vad_parameters if self.use_vad else None)
-        print("-----------------------------")
-        print(result)
-        print(info)
+        logger.info(result)
 
-
-        # o:tuple = ((ret.start,ret.end,ret.text) for ret in result)
-        # self.hypothesis_buffer.insert(o,self.timestamp_offset)
-        # o = self.hypothesis_buffer.flush()
-        # print(result)
-        # print(o)
-        print("-----------------------------")
         if self.language is None and info is not None:
             self.set_language(info)
         return result
@@ -446,11 +446,12 @@ class ServeClientFasterWhisper(ServeClientBase):
         """
         while True:
             if self.exit:
-                logging.info("Exiting speech to text thread")
+                logger.info("Exiting speech to text thread")
                 self.websocket.close()
                 break
 
             if self.frames_np is None:
+                logger.info("frame np is not set yet")
                 continue
 
             self.clip_audio_if_no_valid_segment()
@@ -468,8 +469,8 @@ class ServeClientFasterWhisper(ServeClientBase):
                         self.prev_timestamp_offset_set = True
                     self.timestamp_offset += duration
                     time.sleep(0.25)    # wait for voice activity, result is None when no voice activity
-                    print(self.timestamp_offset,self.prev_timestamp_offset)
-                    print(self.timestamp_offset - self.prev_timestamp_offset)
+                    logger.info(self.timestamp_offset,self.prev_timestamp_offset)
+                    logger.info(self.timestamp_offset - self.prev_timestamp_offset)
 
                     if self.start_speeking:
                         if self.timestamp_offset - self.prev_timestamp_offset > 2:
@@ -490,7 +491,7 @@ class ServeClientFasterWhisper(ServeClientBase):
                 self.handle_transcription_output(result, duration)
 
             except Exception as e:
-                logging.error(f"[ERROR]: Failed to transcribe audio chunk: {e}")
+                logger.error(f"[ERROR]: Failed to transcribe audio chunk: {e}")
                 time.sleep(0.01)
 
     def format_segment(self, start:float, end:float, text:str):
@@ -587,22 +588,5 @@ class ServeClientFasterWhisper(ServeClientBase):
         return last_segment
 
 
-if __name__ == "__main__":
-    server = TranscriptionServer()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--port', '-p',
-                        type=int,
-                        default=9090,
-                        help="Websocket port to run the server on.")
-    parser.add_argument('--faster_whisper_custom_model_path', '-fw',
-                        type=str, default=None,
-                        help="Custom Faster Whisper Model")
-    args = parser.parse_args()
-    print("server is running at port 9000 at 0.0.0.0")
-    server.run(
-        "0.0.0.0",
-        port=args.port,
-        backend="faster_whisper",
-        faster_whisper_custom_model_path=args.faster_whisper_custom_model_path
-    )
+
     
