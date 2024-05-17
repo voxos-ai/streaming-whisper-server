@@ -22,11 +22,11 @@ class TranscriptionServer:
     @staticmethod
     def bytes_to_float_array(audio:np.ndarray):
         return audio.astype(np.float32) / 32768.0
-    def __init__(self):
+    def __init__(self,use_vad=True,denoise=False):
         self.client_manager = ClientManager()
         self.no_voice_activity_chunks = 0
-        self.use_vad = True
-        self.denoise = False
+        self.use_vad = use_vad
+        self.denoise = denoise
         if self.denoise:
             self.noise_deduction_model:Demucs = LoadModel()
             self.infrence_mech:BasicInferenceMechanism = BasicInferenceMechanism(self.noise_deduction_model)
@@ -74,8 +74,8 @@ class TranscriptionServer:
         audio = np.frombuffer(frame_data, dtype=np.float32)
         if self.denoise:
             logger.info("denoising voice")
-            out = self.infrence_mech(audio)
-            logger.info(f"denoising voice {out}")
+            out = self.infrence_mech(audio)[0]
+            logger.info(f"denoising voice {out.shape}")
             return out
         else:
             logger.info(audio)
@@ -147,7 +147,7 @@ class TranscriptionServer:
         Raises:
             Exception: If there is an error during the audio frame processing.
         """
-        print("start receving audio")
+        logger.info("start receving audio")
         self.backend = backend
         if not self.handle_new_connection(websocket, faster_whisper_custom_model_path):
             return
@@ -159,6 +159,7 @@ class TranscriptionServer:
         except ConnectionClosed:
             logger.info("Connection closed by client")
         except Exception as e:
+            logger.error(e.with_traceback())
             logger.error(f"Unexpected error: {str(e)}")
         finally:
             if self.client_manager.get_client(websocket):
@@ -451,7 +452,7 @@ class ServeClientFasterWhisper(ServeClientBase):
                 break
 
             if self.frames_np is None:
-                logger.info("frame np is not set yet")
+                # logger.info("frame np is not set yet")
                 continue
 
             self.clip_audio_if_no_valid_segment()
@@ -469,8 +470,8 @@ class ServeClientFasterWhisper(ServeClientBase):
                         self.prev_timestamp_offset_set = True
                     self.timestamp_offset += duration
                     time.sleep(0.25)    # wait for voice activity, result is None when no voice activity
-                    logger.info(self.timestamp_offset,self.prev_timestamp_offset)
-                    logger.info(self.timestamp_offset - self.prev_timestamp_offset)
+                    logger.info(f"{self.timestamp_offset,self.prev_timestamp_offset}")
+                    logger.info(f"{self.timestamp_offset - self.prev_timestamp_offset}")
 
                     if self.start_speeking:
                         if self.timestamp_offset - self.prev_timestamp_offset > 2:

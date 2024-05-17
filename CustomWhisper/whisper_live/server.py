@@ -350,6 +350,7 @@ class ServeClientBase(object):
     RATE = 16000
     SERVER_READY = "SERVER_READY"
     DISCONNECT = "DISCONNECT"
+    UTTERANCE_END = "UTTERANCE_END"
 
     def __init__(self, client_uid, websocket):
         self.client_uid = client_uid
@@ -401,7 +402,7 @@ class ServeClientBase(object):
 
         """
         self.lock.acquire()
-
+        # logging.info(f"condition: {self.frames_np.shape[0] > 45*self.RATE}")
         if self.frames_np is not None and self.frames_np.shape[0] > 45*self.RATE:
             self.frames_offset += 30.0
             logging.info("added in the frames np buffer")
@@ -515,7 +516,11 @@ class ServeClientBase(object):
             "uid": self.client_uid,
             "message": self.DISCONNECT
         }))
-
+    def uttrence_end(self):
+        self.websocket.send(json.dumps({
+            "uid": self.client_uid,
+            "message": self.UTTERANCE_END
+        }))
     def cleanup(self):
         """
         Perform cleanup tasks before exiting the transcription service.
