@@ -3,7 +3,7 @@ this package is combination whisper live and denoise packages,
 
 ## Install Instruction
 ```shell
-pip install git+https://github.com/anshjoseph/WhisperCustom.git
+pip install git+https://github.com/bolna-ai/streaming-whisper-server.git
 
 pip install transformers
 ```
