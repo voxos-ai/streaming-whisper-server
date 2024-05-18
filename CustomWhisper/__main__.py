@@ -15,7 +15,9 @@ if __name__ == "__main__":
     os.mkdir(f"{args.create_project}/LLM")
     os.mkdir(f"{args.create_project}/NoiseWeights")
     os.mkdir(f"{args.create_project}/VAD")
-    out_dir = f"{args.create_project}/LLM/{args.whisper_model_name.split("/")[-1]}"
+    model_name = args.whisper_model_name.split("/")[-1]
+    out_dir = f"{args.create_project}/LLM/{model_name}"
     os.system(f"ct2-transformers-converter --model {args.whisper_model_name} --copy_files preprocessor_config.json --output_dir {out_dir} --quantization float16")
-    os.system(f"wget https://dl.fbaipublicfiles.com/adiyoss/denoiser/dns48-11decc9d8e3f0998.th -o {args.create_project}/{args.create_project}/NoiseWeights/model.th")
-    os.system(f"")
+    os.system(f"wget https://dl.fbaipublicfiles.com/adiyoss/denoiser/dns48-11decc9d8e3f0998.th -O {args.create_project}/NoiseWeights/model.th")
+    os.system(f"wget https://github.com/anshjoseph/WhisperCustom/raw/master/example/SimpleExample/VAD/silero_vad.onnx -O {args.create_project}/VAD/silero_vad.onnx")
+    print("HERE IS BASIC SETUP OF FOLDER TO RUN THIS MODULE IN SERVER SIDE")
