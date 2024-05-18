@@ -2,4 +2,4 @@ LLM/whisper_tiny_ct/
 .env
 __pycache__/
 *.egg-info
-example/SimpleExample/LLM/whisper_tiny_ct
+example/SimpleExample/ASR/whisper_tiny_ct
