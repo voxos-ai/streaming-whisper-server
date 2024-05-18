@@ -22,6 +22,7 @@ class TranscriptionServer:
     @staticmethod
     def bytes_to_float_array(audio:np.ndarray):
         return audio.astype(np.float32) / 32768.0
+    
     def __init__(self,use_vad=True,denoise=False):
         self.client_manager = ClientManager()
         self.no_voice_activity_chunks = 0
