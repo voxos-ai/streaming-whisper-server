@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CustomWhisper"
+version = "1.0.1"
+
+
+
+description = "its is modifucation of whisper-live and denoise which can be use in production env"
+license = {text = "MIT License"}
+readme = {file = "readme.md", content-type = "text/markdown"}
+
+authors = [
+  {name = "R Ansh Joseph", email = "ranshjosrph@gmail.com"}
+]
+maintainers = [
+  {name = "R Ansh Joseph", email = "ranshjosrph@gmail.com"}
+]
+
+requires-python = ">= 3.10"
+dependencies = [
+    "ctranslate2==4.1.0",
+    "faster_whisper==1.0.1",
+    "ffmpeg_python==0.2.0",
+    "kaldialign==0.9.1",
+    "numpy==1.26.4",
+    "onnxruntime==1.17.3",
+    "openai_whisper==20231117",
+    "PyAudio==0.2.14",
+    "scipy==1.13.0",
+    "soundfile==0.12.1",
+    "tokenizers==0.15",
+    "torch==2.1.2",
+    "torchaudio==2.1.2",
+    "websocket_client==1.7.0",
+    "websockets==12.0"
+]
