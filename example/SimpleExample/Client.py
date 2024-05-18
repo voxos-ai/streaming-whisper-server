@@ -1,7 +1,7 @@
 from CustomWhisper import BasicWhisperClient
 import numpy as np
 import pyaudio
-
+import logging
 
 
 class Client(BasicWhisperClient):
@@ -11,7 +11,7 @@ class Client(BasicWhisperClient):
         super().onTranscript(segment)
         print(segment)
 
-client = Client("127.0.0.1",9090)
+client = Client("127.0.0.1",9000)
 client.MakeConnectionToServer()
 print(client.retrive_token)
 
