@@ -1,17 +1,17 @@
-from CustomWhisper import BasicWhisperClient
+from WhisperLive import BasicWhisperClient
 import numpy as np
 import pyaudio
-
+import logging
 
 
 class Client(BasicWhisperClient):
     def __init__(self, host: str, port: int) -> None:
-        super().__init__(host, port)
+        super().__init__(host, port, "whisper_tiny_ct")
     def onTranscript(self, segment: dict):
         super().onTranscript(segment)
         print(segment)
 
-client = Client("127.0.0.1",9090)
+client = Client("127.0.0.1",9000)
 client.MakeConnectionToServer()
 print(client.retrive_token)
 

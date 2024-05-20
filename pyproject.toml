@@ -3,8 +3,8 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "CustomWhisper"
-version = "1.0.2"
+name = "WhisperLive"
+version = "1.1.0"
 
 
 
@@ -37,3 +37,5 @@ dependencies = [
     "websocket_client==1.7.0",
     "websockets==12.0"
 ]
+[tool.setuptools.packages.find]
+include = ["WhisperLive"]

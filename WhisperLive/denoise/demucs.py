@@ -5,7 +5,7 @@ from torch import nn
 from torch.nn import functional as F
 from .decorator import capture_init
 from .utils import upsample2, downsample2
-from CustomWhisper.logger_config import configure_logger
+from WhisperLive.logger_config import configure_logger
 
 
 logger = configure_logger(__name__)

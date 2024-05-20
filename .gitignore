@@ -1,5 +1,6 @@
-LLM/whisper_tiny_ct/
+
 .env
 __pycache__/
 *.egg-info
-example/SimpleExample/ASR/whisper_tiny_ct
+Server/ASR/whisper_tiny_ct
+Server/ASR/tiny

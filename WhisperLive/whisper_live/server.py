@@ -9,7 +9,7 @@ from websockets.sync.server import serve
 from websockets.exceptions import ConnectionClosed
 from .vad import VoiceActivityDetector
 from .transcriber import WhisperModel
-from CustomWhisper.logger_config import configure_logger
+from WhisperLive.logger_config import configure_logger
 
 logging = configure_logger(__name__)
 
@@ -813,7 +813,8 @@ class ServeClientFasterWhisper(ServeClientBase):
             language=self.language,
             task=self.task,
             vad_filter=self.use_vad,
-            vad_parameters=self.vad_parameters if self.use_vad else None)
+            vad_parameters=self.vad_parameters if self.use_vad else None,
+            hotwords=[""])
 
         if self.language is None and info is not None:
             self.set_language(info)

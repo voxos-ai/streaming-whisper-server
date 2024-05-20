@@ -1,7 +1,7 @@
 from .demucs import Demucs
 import torch
 from uuid import uuid4
-from CustomWhisper.logger_config import configure_logger
+from WhisperLive.logger_config import configure_logger
 import torchaudio
 import numpy as np
 logger = configure_logger(__name__)

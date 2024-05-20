@@ -22,5 +22,5 @@ ct2-transformers-converter --model <model: openai/whisper-tiny> --copy_files pre
 > cd my-project
 > ls
 ASR  NoiseWeights  Server.py  VAD
-> python3 Server.py -p 9000 -fw ./ASR/model
+> python3 Server.py -p 9000
 ```

@@ -1,5 +1,5 @@
 import functools
-from CustomWhisper.logger_config import configure_logger
+from WhisperLive.logger_config import configure_logger
 
 
 logger = configure_logger(__name__)

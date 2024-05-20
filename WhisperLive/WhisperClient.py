@@ -9,13 +9,14 @@ from websockets.exceptions import *
 
 
 class BasicWhisperClient:
-    def __init__(self,host:str,port:int) -> None:
+    def __init__(self,host:str, port:int, model:str) -> None:
         self.ws_url =  f"ws://{host}:{port}"
         self.ws_connection:websocket.WebSocket = websocket.WebSocket()
         self.ws_connection.connect(self.ws_url)
         self.client_id:str = str(uuid.uuid4())
         self.retrive_token= None
         self.recever_task = None
+        self.model = model
 
 
         self.commited_list:list[str] = []
@@ -36,8 +37,8 @@ class BasicWhisperClient:
             {
                 "uid": str(uuid.uuid4()),
                 "language": "en",
-                "task": "translate",
-                "model": "small",
+                "task": "transcribe",
+                "model": self.model,
                 "use_vad": True
             }
         ))
@@ -71,7 +72,7 @@ class BasicWhisperClient:
         if len(segments) > 1 and len(segments) - self.seg_ptr >= 2:
             self.commited_list.append(segments[self.seg_ptr]['text'])
             segments[self.seg_ptr]["is_final"] = True
-            self.onTranscript(segments)
+            self.onTranscript(segments[self.seg_ptr])
             self.seg_ptr += 1
         return segments
 
@@ -79,8 +80,6 @@ class BasicWhisperClient:
 
     def AddAttributes(self,segments:dict):
         segments_list = [seg for seg in segments['segments']]
-
-        # for 
 
         for i,seg in enumerate(segments_list):
             if seg['text'] in self.commited_list:
@@ -95,7 +94,10 @@ class BasicWhisperClient:
     def get_segment(self):
         while True:
             try:
-                data:dict = json.loads(self.ws_connection.recv())
+                print("receverd some thing")
+                __data = self.ws_connection.recv()
+                print(__data)
+                data:dict = json.loads(__data)
                 if "message" not in data:
                     # self.segments.put(data)
                     data = self.AddAttributes(data)
@@ -112,16 +114,20 @@ class BasicWhisperClient:
                     print(data)
                     if data['message'] == 'DISCONNECT':
                         self.ws_connection.close()
-                        self.onDisconnect()
+                        # self.onDisconnect()
                         break
                     elif data['message'] == "UTTERANCE_END":
-                        self.prev_segment[-1]['is_final'] = True
-                        print(self.prev_segment)
+                        if len(self.prev_segment) > 0:
+                            self.prev_segment[-1]['is_final'] = True
+                        # note make this changes
                     elif data['message'] == 'SERVER_READY':
                         print("server id ready")
                     
 
-            except:
+            except Exception as e:
+                import traceback
+                print(traceback.format_exc())
+                print(f"rcever stoped {e}")
                 break
     
          

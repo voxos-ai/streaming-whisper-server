@@ -10,7 +10,7 @@ import uuid
 import time
 import ffmpeg
 import whisper_live.utils as utils
-from CustomWhisper.logger_config import configure_logger
+from WhisperLive.logger_config import configure_logger
 
 
 logger = configure_logger(__name__)

@@ -7,10 +7,10 @@ import torch
 import numpy as np
 from websockets.sync.server import serve
 from websockets.exceptions import ConnectionClosed
-from CustomWhisper.whisper_live.vad import VoiceActivityDetector
-from CustomWhisper.whisper_live.transcriber import WhisperModel
-from CustomWhisper.whisper_live.server import ServeClientBase, ClientManager
-from CustomWhisper.whisper_live.HypothesisBuffer import HypothesisBufferPrefix
+from WhisperLive.whisper_live.vad import VoiceActivityDetector
+from WhisperLive.whisper_live.transcriber import WhisperModel
+from WhisperLive.whisper_live.server import ServeClientBase, ClientManager
+from WhisperLive.whisper_live.HypothesisBuffer import HypothesisBufferPrefix
 from .denoise import LoadModel, Demucs, BasicInferenceMechanism
 from .logger_config import configure_logger
 
@@ -23,11 +23,17 @@ class TranscriptionServer:
     def bytes_to_float_array(audio:np.ndarray):
         return audio.astype(np.float32) / 32768.0
     
-    def __init__(self,use_vad=True,denoise=False):
+    def __init__(self,use_vad=True,denoise=False,hotwords=None,model_list=[]):
         self.client_manager = ClientManager()
         self.no_voice_activity_chunks = 0
         self.use_vad = use_vad
         self.denoise = denoise
+        self.hotwords = hotwords
+        self.model_list = model_list
+        self.default_model_index = 0
+        if model_list == None or len(model_list) <= 0:
+            raise("without model list we can't start server")
+        
         if self.denoise:
             self.noise_deduction_model:Demucs = LoadModel()
             self.infrence_mech:BasicInferenceMechanism = BasicInferenceMechanism(self.noise_deduction_model)
@@ -37,22 +43,27 @@ class TranscriptionServer:
             self.infrence_mech = None
         logger.info("TranscriptionServer is created")
 
-    def initialize_client(self, websocket, options, faster_whisper_custom_model_path):
-        # checking the model
-        if faster_whisper_custom_model_path is not None and os.path.exists(faster_whisper_custom_model_path):
-            logger.info(f"Using custom model {faster_whisper_custom_model_path}")
-            options["model"] = faster_whisper_custom_model_path
+    def initialize_client(self, websocket, options):
+        logger.info(options)
+        if options["model"] not in self.model_list:
+            logger.info("model name is not  in model list so getting revert to default model")
+            model = f"./ASR/{self.model_list[self.default_model_index]}"
+        else:
+            logger.info("model is detected")
+            model =  f"./ASR/{options['model']}"
         
+        logger.info(f"loaded model {model}")
         # making the FasterWhisper server
         client:ServeClientFasterWhisper = ServeClientFasterWhisper(
             websocket,
             language=options["language"],
             task=options["task"],
             client_uid=options["uid"],
-            model=options["model"],
+            model=model,
             initial_prompt=options.get("initial_prompt"),
             vad_parameters=options.get("vad_parameters"),
             use_vad=self.use_vad,
+            hotwords=self.hotwords
         )
         logger.info("Running faster_whisper backend.")
 
@@ -82,7 +93,7 @@ class TranscriptionServer:
             logger.info(audio)
             return audio
 
-    def handle_new_connection(self, websocket, faster_whisper_custom_model_path):
+    def handle_new_connection(self, websocket):
         try:
             logger.info("New client connected")
             options = websocket.recv()
@@ -94,7 +105,7 @@ class TranscriptionServer:
 
             # if self.backend == "tensorrt":
             self.vad_detector = VoiceActivityDetector(frame_rate=self.RATE)
-            self.initialize_client(websocket, options, faster_whisper_custom_model_path)
+            self.initialize_client(websocket, options)
             return True
         
         except json.JSONDecodeError:
@@ -122,8 +133,7 @@ class TranscriptionServer:
 
     def recv_audio(self,
                    websocket,
-                   backend="faster_whisper",
-                   faster_whisper_custom_model_path="./LLM/whisper_tiny_ct"):
+                   backend="faster_whisper"):
         """
         Receive audio chunks from a client in an infinite loop.
 
@@ -150,7 +160,7 @@ class TranscriptionServer:
         """
         logger.info("start receving audio")
         self.backend = backend
-        if not self.handle_new_connection(websocket, faster_whisper_custom_model_path):
+        if not self.handle_new_connection(websocket):
             return
 
         try:
@@ -170,9 +180,7 @@ class TranscriptionServer:
 
     def run(self,
             host,
-            port=9090,
-            backend="tensorrt",
-            faster_whisper_custom_model_path=None):
+            port=9090):
         """
         Run the transcription server.
 
@@ -183,8 +191,7 @@ class TranscriptionServer:
         with serve(
             functools.partial(
                 self.recv_audio,
-                backend=backend,
-                faster_whisper_custom_model_path=faster_whisper_custom_model_path
+                backend="faster_whisper",
             ),
             host,
             port
@@ -236,7 +243,7 @@ class TranscriptionServer:
 
 
 class ServeClientFasterWhisper(ServeClientBase):
-    def __init__(self, websocket, task="transcribe", device=None, language=None, client_uid=None, model="./LLM/whisper_tiny_ct",
+    def __init__(self, websocket, hotwords=None, task="transcribe", device=None, language=None, client_uid=None, model="./LLM/whisper_tiny_ct",
                  initial_prompt=None, vad_parameters=None, use_vad=True):
         """
         Initialize a ServeClient instance.
@@ -254,6 +261,7 @@ class ServeClientFasterWhisper(ServeClientBase):
             initial_prompt (str, optional): Prompt for whisper inference. Defaults to None.
         """
         super().__init__(client_uid, websocket)
+        self.hotwords = hotwords
         self.model_sizes = [
             "tiny", "tiny.en", "base", "base.en", "small", "small.en",
             "medium", "medium.en", "large-v2", "large-v3",
@@ -374,7 +382,8 @@ class ServeClientFasterWhisper(ServeClientBase):
             language=self.language,
             task=self.task,
             vad_filter=self.use_vad,
-            vad_parameters=self.vad_parameters if self.use_vad else None)
+            vad_parameters=self.vad_parameters if self.use_vad else None,
+            hotwords=self.hotwords)
         logger.info(result)
 
         if self.language is None and info is not None:

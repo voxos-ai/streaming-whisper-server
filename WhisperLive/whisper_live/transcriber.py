@@ -13,11 +13,11 @@ import ctranslate2
 import numpy as np
 import tokenizers
 
-from faster_whisper.audio import decode_audio, pad_or_trim
-from faster_whisper.feature_extractor import FeatureExtractor
-from faster_whisper.tokenizer import _LANGUAGE_CODES, Tokenizer
-from faster_whisper.utils import download_model, format_timestamp, get_end, get_logger
-from faster_whisper.vad import (
+from WhisperLive.faster_whisper.audio import decode_audio, pad_or_trim
+from WhisperLive.faster_whisper.feature_extractor import FeatureExtractor
+from WhisperLive.faster_whisper.tokenizer import _LANGUAGE_CODES, Tokenizer
+from WhisperLive.faster_whisper.utils import download_model, format_timestamp, get_end, get_logger
+from WhisperLive.faster_whisper.vad import (
     SpeechTimestampsMap,
     VadOptions,
     collect_chunks,
@@ -46,6 +46,7 @@ class Segment(NamedTuple):
     words: Optional[List[Word]]
 
 
+
 class TranscriptionOptions(NamedTuple):
     beam_size: int
     best_of: int
@@ -71,6 +72,8 @@ class TranscriptionOptions(NamedTuple):
     max_new_tokens: Optional[int]
     clip_timestamps: Union[str, List[float]]
     hallucination_silence_threshold: Optional[float] = 0.5
+    hotwords: Optional[List[str]] = []
+
 
 
 class TranscriptionInfo(NamedTuple):
@@ -224,7 +227,8 @@ class WhisperModel:
         max_new_tokens: Optional[int] = None,
         chunk_length: Optional[int] = None,
         clip_timestamps: Union[str, List[float]] = "0",
-        hallucination_silence_threshold: Optional[float] = 0.5,
+        hotwords:Optional[List[str]] = None,
+        hallucination_silence_threshold: Optional[float] = 0.5
     ) -> Tuple[Iterable[Segment], TranscriptionInfo]:
         """Transcribes an input file.
 
@@ -380,35 +384,65 @@ class WhisperModel:
             task=task,
             language=language,
         )
-
-        options = TranscriptionOptions(
-            beam_size=beam_size,
-            best_of=best_of,
-            patience=patience,
-            length_penalty=length_penalty,
-            repetition_penalty=repetition_penalty,
-            no_repeat_ngram_size=no_repeat_ngram_size,
-            log_prob_threshold=log_prob_threshold,
-            no_speech_threshold=no_speech_threshold,
-            compression_ratio_threshold=compression_ratio_threshold,
-            condition_on_previous_text=condition_on_previous_text,
-            prompt_reset_on_temperature=prompt_reset_on_temperature,
-            temperatures=(
-                temperature if isinstance(temperature, (list, tuple)) else [temperature]
-            ),
-            initial_prompt=initial_prompt,
-            prefix=prefix,
-            suppress_blank=suppress_blank,
-            suppress_tokens=get_suppressed_tokens(tokenizer, suppress_tokens),
-            without_timestamps=without_timestamps,
-            max_initial_timestamp=max_initial_timestamp,
-            word_timestamps=word_timestamps,
-            prepend_punctuations=prepend_punctuations,
-            append_punctuations=append_punctuations,
-            max_new_tokens=max_new_tokens,
-            clip_timestamps=clip_timestamps,
-            hallucination_silence_threshold=hallucination_silence_threshold,
-        )
+        if hotwords == None:
+            options = TranscriptionOptions(
+                beam_size=beam_size,
+                best_of=best_of,
+                patience=patience,
+                length_penalty=length_penalty,
+                repetition_penalty=repetition_penalty,
+                no_repeat_ngram_size=no_repeat_ngram_size,
+                log_prob_threshold=log_prob_threshold,
+                no_speech_threshold=no_speech_threshold,
+                compression_ratio_threshold=compression_ratio_threshold,
+                condition_on_previous_text=condition_on_previous_text,
+                prompt_reset_on_temperature=prompt_reset_on_temperature,
+                temperatures=(
+                    temperature if isinstance(temperature, (list, tuple)) else [temperature]
+                ),
+                initial_prompt=initial_prompt,
+                prefix=prefix,
+                suppress_blank=suppress_blank,
+                suppress_tokens=get_suppressed_tokens(tokenizer, suppress_tokens),
+                without_timestamps=without_timestamps,
+                max_initial_timestamp=max_initial_timestamp,
+                word_timestamps=word_timestamps,
+                prepend_punctuations=prepend_punctuations,
+                append_punctuations=append_punctuations,
+                max_new_tokens=max_new_tokens,
+                clip_timestamps=clip_timestamps,
+                hallucination_silence_threshold=hallucination_silence_threshold,
+            )
+        else:
+            options = TranscriptionOptions(
+                beam_size=beam_size,
+                best_of=best_of,
+                patience=patience,
+                length_penalty=length_penalty,
+                repetition_penalty=repetition_penalty,
+                no_repeat_ngram_size=no_repeat_ngram_size,
+                log_prob_threshold=log_prob_threshold,
+                no_speech_threshold=no_speech_threshold,
+                compression_ratio_threshold=compression_ratio_threshold,
+                condition_on_previous_text=condition_on_previous_text,
+                prompt_reset_on_temperature=prompt_reset_on_temperature,
+                temperatures=(
+                    temperature if isinstance(temperature, (list, tuple)) else [temperature]
+                ),
+                initial_prompt=initial_prompt,
+                prefix=prefix,
+                suppress_blank=suppress_blank,
+                suppress_tokens=get_suppressed_tokens(tokenizer, suppress_tokens),
+                without_timestamps=without_timestamps,
+                max_initial_timestamp=max_initial_timestamp,
+                word_timestamps=word_timestamps,
+                prepend_punctuations=prepend_punctuations,
+                append_punctuations=append_punctuations,
+                max_new_tokens=max_new_tokens,
+                clip_timestamps=clip_timestamps,
+                hallucination_silence_threshold=hallucination_silence_threshold,
+                hotwords=hotwords
+            )
 
         segments = self.generate_segments(features, tokenizer, options, encoder_output)
 
