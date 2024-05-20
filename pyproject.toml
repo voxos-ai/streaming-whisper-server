@@ -22,7 +22,6 @@ maintainers = [
 requires-python = ">= 3.10"
 dependencies = [
     "ctranslate2==4.1.0",
-    "faster_whisper==1.0.1",
     "ffmpeg_python==0.2.0",
     "kaldialign==0.9.1",
     "numpy==1.26.4",
