@@ -9,7 +9,8 @@ Features
 - Real-Time Processing: Supports real-time audio processing for immediate feedback.
 - Multi-Threading: Handles multiple requests simultaneously for efficient processing.
 - Hot-word: you can specify the hot word in `hotword` file inside the server folder by which it can focus on particular words accoring to you needs
-  
+
+![alt text](./img/ar.jpg "Title")  
 
 ## Install Instruction
 ```shell
