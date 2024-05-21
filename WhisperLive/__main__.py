@@ -8,7 +8,7 @@ import os
 
 if __name__ == "__main__":
     
-    ASRs = [i.name for i in os.scandir("./ASR") if i.is_dir]
+    ASRs = [i.name for i in os.scandir("./ASR") if i.is_dir()]
     with open("./hotwords",'r') as file:
         hotwords = [i for i in file.readlines() if (i.strip()) != 0]
     if len(hotwords) <= 0:
@@ -31,7 +31,7 @@ import os
 
 if __name__ == "__main__":
     
-    ASRs = [i.name for i in os.scandir("./ASR") if i.is_dir]
+    ASRs = [i.name for i in os.scandir("./ASR") if i.is_dir()]
     with open("./hotwords",'r') as file:
         hotwords = [i for i in file.readlines() if (i.strip()) != 0]
     if len(hotwords) <= 0:
