@@ -560,7 +560,7 @@ class WhisperModel:
                 temperature,
                 compression_ratio,
             ) = self.generate_with_fallback(encoder_output, prompt, tokenizer, options)
-
+            logging.info(f"RESULT: {result}")
             if options.no_speech_threshold is not None:
                 # no voice activity check
                 should_skip = result.no_speech_prob > options.no_speech_threshold
