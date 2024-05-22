@@ -45,6 +45,8 @@ class TranscriptionServer:
 
     def initialize_client(self, websocket, options):
         logger.info(options)
+        __hotwords = options['keywords']
+        if __hotwords == None: __hotwords = []
         if options["model"] not in self.model_list:
             logger.info("model name is not  in model list so getting revert to default model")
             model = f"./ASR/{self.model_list[self.default_model_index]}"
@@ -63,7 +65,7 @@ class TranscriptionServer:
             initial_prompt=options.get("initial_prompt"),
             vad_parameters=options.get("vad_parameters"),
             use_vad=self.use_vad,
-            hotwords=self.hotwords
+            hotwords=list(set(__hotwords + self.hotwords))
         )
         logger.info("Running faster_whisper backend.")
 
