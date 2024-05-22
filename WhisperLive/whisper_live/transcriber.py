@@ -55,7 +55,7 @@ class TranscriptionOptions(NamedTuple):
     repetition_penalty: float
     no_repeat_ngram_size: int
     log_prob_threshold: Optional[float]
-    no_speech_threshold: Optional[float]
+    no_speech_threshold: Optional[float] = 0.45
     compression_ratio_threshold: Optional[float]
     condition_on_previous_text: bool
     prompt_reset_on_temperature: float
@@ -210,7 +210,7 @@ class WhisperModel:
         ],
         compression_ratio_threshold: Optional[float] = 2.4,
         log_prob_threshold: Optional[float] = -1.0,
-        no_speech_threshold: Optional[float] = 0.6,
+        no_speech_threshold: Optional[float] = 0.45,
         condition_on_previous_text: bool = True,
         prompt_reset_on_temperature: float = 0.5,
         initial_prompt: Optional[Union[str, Iterable[int]]] = None,
@@ -228,7 +228,7 @@ class WhisperModel:
         chunk_length: Optional[int] = None,
         clip_timestamps: Union[str, List[float]] = "0",
         hotwords:Optional[List[str]] = None,
-        hallucination_silence_threshold: Optional[float] = 0.5
+        hallucination_silence_threshold: Optional[float] = 0.5,
     ) -> Tuple[Iterable[Segment], TranscriptionInfo]:
         """Transcribes an input file.
 

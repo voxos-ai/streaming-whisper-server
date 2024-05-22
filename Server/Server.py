@@ -9,7 +9,7 @@ if __name__ == "__main__":
         hotwords = [i for i in file.readlines() if (i.strip()) != 0]
     if len(hotwords) <= 0:
         hotwords = None
-    server = TranscriptionServer(use_vad=True,denoise=True,hotwords=hotwords,model_list=ASRs)
+    server = TranscriptionServer(use_vad=True,denoise=True,hotwords=hotwords,model_list=ASRs,no_speech_thresh=0.30)
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', '-p',
                         type=int,

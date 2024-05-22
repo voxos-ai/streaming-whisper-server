@@ -23,7 +23,7 @@ class TranscriptionServer:
     def bytes_to_float_array(audio:np.ndarray):
         return audio.astype(np.float32) / 32768.0
     
-    def __init__(self,use_vad=True,denoise=False,hotwords=None,model_list=[]):
+    def __init__(self,use_vad=True,denoise=False,hotwords=None,model_list=[],no_speech_thresh=0.45):
         self.client_manager = ClientManager()
         self.no_voice_activity_chunks = 0
         self.use_vad = use_vad
@@ -31,6 +31,7 @@ class TranscriptionServer:
         self.hotwords = hotwords
         self.model_list = model_list
         self.default_model_index = 0
+        self.no_speech_thresh = no_speech_thresh
         if model_list == None or len(model_list) <= 0:
             raise("without model list we can't start server")
         
@@ -65,6 +66,7 @@ class TranscriptionServer:
             initial_prompt=options.get("initial_prompt"),
             vad_parameters=options.get("vad_parameters"),
             use_vad=self.use_vad,
+            no_speech_threshold=self.no_speech_thresh,
             hotwords=list(set(__hotwords + self.hotwords))
         )
         logger.info("Running faster_whisper backend.")
@@ -246,7 +248,7 @@ class TranscriptionServer:
 
 class ServeClientFasterWhisper(ServeClientBase):
     def __init__(self, websocket, hotwords=None, task="transcribe", device=None, language=None, client_uid=None, model="./LLM/whisper_tiny_ct",
-                 initial_prompt=None, vad_parameters=None, use_vad=True):
+                 initial_prompt=None, vad_parameters=None, use_vad=True, no_speech_threshold = 0.45):
         """
         Initialize a ServeClient instance.
         The Whisper model is initialized based on the client's language and device availability.
@@ -276,7 +278,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         self.task = task
         self.initial_prompt = initial_prompt
         self.vad_parameters = vad_parameters or {"threshold": 0.5}
-        self.no_speech_thresh = 0.45
+        self.no_speech_thresh = no_speech_threshold
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -385,7 +387,8 @@ class ServeClientFasterWhisper(ServeClientBase):
             task=self.task,
             vad_filter=self.use_vad,
             vad_parameters=self.vad_parameters if self.use_vad else None,
-            hotwords=self.hotwords)
+            hotwords=self.hotwords,
+            no_speech_threshold=self.no_speech_thresh)
         logger.info(result)
 
         if self.language is None and info is not None:
