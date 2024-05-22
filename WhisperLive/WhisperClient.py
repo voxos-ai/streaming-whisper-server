@@ -117,8 +117,9 @@ class BasicWhisperClient:
                         # self.onDisconnect()
                         break
                     elif data['message'] == "UTTERANCE_END":
-                        if len(self.prev_segment) > 0:
-                            self.prev_segment[-1]['is_final'] = True
+                        if self.prev_segment != None:
+                            if len(self.prev_segment) > 0:
+                                self.prev_segment[-1]['is_final'] = True
                         # note make this changes
                     elif data['message'] == 'SERVER_READY':
                         print("server id ready")

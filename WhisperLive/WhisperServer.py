@@ -45,7 +45,7 @@ class TranscriptionServer:
 
     def initialize_client(self, websocket, options):
         logger.info(options)
-        __hotwords = options['keywords']
+        __hotwords = options.get('keywords')
         if __hotwords == None: __hotwords = []
         if options["model"] not in self.model_list:
             logger.info("model name is not  in model list so getting revert to default model")
