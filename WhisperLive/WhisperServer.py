@@ -48,6 +48,7 @@ class TranscriptionServer:
         logger.info(options)
         __hotwords = options.get('keywords')
         if __hotwords == None: __hotwords = []
+        if type(__hotwords) == str: __hotwords = __hotwords.split(",")
         if options["model"] not in self.model_list:
             logger.info("model name is not  in model list so getting revert to default model")
             model = f"./ASR/{self.model_list[self.default_model_index]}"
