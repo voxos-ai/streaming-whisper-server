@@ -10,7 +10,7 @@ class BasicInferenceMechanism:
     def __init__(self,model:Demucs) -> None:
         self.model:Demucs = model
         self.model_id:str = str(uuid4())
-        self.device = torch.device("cuda2") if torch.cuda.is_available() else torch.device("cpu")
+        self.device = torch.device("cuda:2") if torch.cuda.is_available() else torch.device("cpu")
         logger.info(f"BasicInferenceMechanism with model id: {self.model_id} loaded, detected device {self.device}")
         self.model.to(self.device)
     def __call__(self, audio:np.ndarray) -> np.ndarray:
