@@ -284,7 +284,7 @@ class ServeClientFasterWhisper(ServeClientBase):
 
         logger.info(f"no speech prob: {self.no_speech_thresh}")
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = "cuda:2" if torch.cuda.is_available() else "cpu"
 
         if self.model_size_or_path is None:
             return
