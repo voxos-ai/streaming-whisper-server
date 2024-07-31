@@ -14,7 +14,7 @@ Features
 
 ## Install Instruction
 ```shell
-pip install git+https://github.com/SYSTRAN/faster-whisper.git
+pip install faster-wisper==1.0.1
 pip install git+https://github.com/bolna-ai/streaming-whisper-server.git
 
 pip install transformers

@@ -34,7 +34,8 @@ dependencies = [
     "torch==2.1.2",
     "torchaudio==2.1.2",
     "websocket_client==1.7.0",
-    "websockets==12.0"
+    "websockets==12.0",
+    "faster-wisper==1.0.1"
 ]
 [tool.setuptools.packages.find]
 include = ["WhisperLive"]
