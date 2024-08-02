@@ -406,6 +406,7 @@ class ServeClientBase(object):
         """
         self.lock.acquire()
         # logging.info(f"condition: {self.frames_np.shape[0] > 45*self.RATE}")
+        # logging.info(f"SHAPE OF INPUT AUDIO CHUNK: {self.frames_np.shape}")
         if self.frames_np is not None and self.frames_np.shape[0] > 45*self.RATE:
             self.frames_offset += 30.0
             logging.info("added in the frames np buffer")

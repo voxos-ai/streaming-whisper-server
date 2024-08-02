@@ -97,6 +97,8 @@ class BasicWhisperClient:
                 print("receverd some thing")
                 __data = self.ws_connection.recv()
                 print(__data)
+                if len(__data) == 0:
+                    continue
                 data:dict = json.loads(__data)
                 if "message" not in data:
                     # self.segments.put(data)

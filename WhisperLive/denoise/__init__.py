@@ -1,3 +1,3 @@
 from .demucs import Demucs
 from .demucs import LoadModel
-from .infrenceMec import BasicInferenceMechanism
+from .infrenceMec import BasicInferenceMechanism, InferenceMechanism

@@ -11,7 +11,7 @@ from WhisperLive.whisper_live.vad import VoiceActivityDetector
 from WhisperLive.whisper_live.transcriber import WhisperModel
 from WhisperLive.whisper_live.server import ServeClientBase, ClientManager
 from WhisperLive.whisper_live.HypothesisBuffer import HypothesisBufferPrefix
-from .denoise import LoadModel, Demucs, BasicInferenceMechanism
+from .denoise import LoadModel, Demucs, BasicInferenceMechanism, InferenceMechanism
 from .logger_config import configure_logger
 
 
@@ -23,7 +23,7 @@ class TranscriptionServer:
     def bytes_to_float_array(audio:np.ndarray):
         return audio.astype(np.float32) / 32768.0
     
-    def __init__(self,use_vad=True,denoise=False,hotwords=None,model_list=[],no_speech_prob:float=0.45):
+    def __init__(self,use_vad=True,denoise=False, denoise_model = "FaceBookDenoise" ,hotwords=None,model_list=[],no_speech_prob:float=0.45):
         self.client_manager = ClientManager()
         self.no_voice_activity_chunks = 0
         self.use_vad = use_vad
@@ -36,9 +36,9 @@ class TranscriptionServer:
             raise("without model list we can't start server")
         
         if self.denoise:
-            self.noise_deduction_model:Demucs = LoadModel()
-            self.infrence_mech:BasicInferenceMechanism = BasicInferenceMechanism(self.noise_deduction_model)
-            
+            # self.noise_deduction_model:Demucs = LoadModel()
+            # self.infrence_mech:BasicInferenceMechanism = BasicInferenceMechanism(self.noise_deduction_model)
+            self.infrence_mech:InferenceMechanism = InferenceMechanism(denoise_model)
         else:
             self.noise_deduction_model = None
             self.infrence_mech = None
@@ -92,8 +92,9 @@ class TranscriptionServer:
         audio = np.frombuffer(frame_data, dtype=np.float32)
         if self.denoise:
             logger.info("denoising voice")
-            out = self.infrence_mech(audio)[0]
+            out = self.infrence_mech(audio)
             logger.info(f"denoising voice {out.shape}")
+            logger.info(out)
             return out
         else:
             logger.info(audio)

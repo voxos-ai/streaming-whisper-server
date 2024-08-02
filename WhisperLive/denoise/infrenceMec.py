@@ -2,6 +2,7 @@ from .demucs import Demucs
 import torch
 from uuid import uuid4
 from WhisperLive.logger_config import configure_logger
+from .Models import Denoise, Denoisers
 import torchaudio
 import numpy as np
 logger = configure_logger(__name__)
@@ -19,3 +20,14 @@ class BasicInferenceMechanism:
         with torch.no_grad():
             output:torch.Tensor = self.model(audio[None])[0]
         return output.cpu().detach().numpy()
+
+class InferenceMechanism:
+    def __init__(self,denoser:str) -> None:
+        try: 
+            self.model_name = denoser
+            self.model:Denoise = Denoisers[denoser]()
+        except Exception as e:
+            logger.error(f"{e}")
+    def __call__(self, audio:np.ndarray) -> np.ndarray:
+        return self.model(audio)
+        
