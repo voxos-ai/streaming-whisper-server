@@ -55,7 +55,7 @@ class TranscriptionServer:
         else:
             logger.info("model is detected")
             model =  f"./ASR/{options['model']}"
-        
+            self.model = options["model"]
         logger.info(f"loaded model {model}")
         # making the FasterWhisper server
         client:ServeClientFasterWhisper = ServeClientFasterWhisper(
@@ -289,13 +289,14 @@ class ServeClientFasterWhisper(ServeClientBase):
 
         if self.model_size_or_path is None:
             return
-
+        __ = time.time()
         self.transcriber = WhisperModel(
             self.model_size_or_path,
             device=device,
             compute_type="int8" if device == "cpu" else "float16",
             local_files_only=False,
         )
+        logger.info(f"loaded {self.model_size_or_path} in: {time.time() - __}")
         self.use_vad = use_vad
 
 
@@ -329,7 +330,7 @@ class ServeClientFasterWhisper(ServeClientBase):
                 }
             )
         )
-
+        
     def check_valid_model(self, model_size):
         """
         Check if it's a valid whisper model size.
@@ -482,8 +483,9 @@ class ServeClientFasterWhisper(ServeClientBase):
                 continue
             try:
                 input_sample = input_bytes.copy()
+                __ = time.time()
                 result = self.transcribe_audio(input_sample)
-
+                logger.info(f"TRANSCRIBER TIME: {time.time() - __}")
                 if result is None or self.language is None:
                     if self.prev_timestamp_offset_set == False:
                         self.prev_timestamp_offset = self.timestamp_offset 

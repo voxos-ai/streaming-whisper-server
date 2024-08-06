@@ -2,6 +2,7 @@ from WhisperLive.logger_config import configure_logger
 import torch as t
 import numpy as np
 import torchaudio
+import time
 
 
 
@@ -13,6 +14,7 @@ class Denoise:
         self.inp_rate = inp_rate
         self.out_rate = 16000
         self.model_rate = model_rate
+        self._time = time.time()
     
     def convert_sample_rate_IA2MD(self,chunk:np.ndarray) -> t.Tensor:
         "this function were use to convert input audio to req. sample rate audio need by denoise model"
@@ -33,6 +35,14 @@ class Denoise:
         raise "NOT IMPLEMENTED"
     
     def __call__(self, audio:np.ndarray) -> np.ndarray:
+        
         audio = self.convert_sample_rate_IA2MD(audio)
+        __ = time.time()
         audio = self.infrence(audio)
-        return self.convert_sample_rate_MD2OA(audio)
+        logger.info(f"TRNSCRIBE TIME: {time.time() - __}")
+        ret = self.convert_sample_rate_MD2OA(audio)
+        
+        return ret
+    def _init(self,**kwags):
+        logger.info(f"MODEL LOADING TIME: {time.time() - self._time}")
+        logger.info(f"INFO: {kwags}")
