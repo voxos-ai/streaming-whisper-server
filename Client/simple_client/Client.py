@@ -3,10 +3,22 @@ import numpy as np
 import pyaudio
 import logging
 import time
+import requests
 
+
+
+
+res = requests.post("http://127.0.0.1:6700/load-model/",json={
+    "model-name":"tiny",
+    "mode":"auto"
+})
+
+print(res.status_code)
+model = res.json()["model-id"]
+print(model)
 class Client(BasicWhisperClient):
     def __init__(self, host: str, port: int) -> None:
-        super().__init__(host, port, "tiny-copy")
+        super().__init__(host, port, model)
     def onTranscript(self, segment: dict):
         super().onTranscript(segment)
         print(segment)
