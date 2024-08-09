@@ -32,6 +32,7 @@ class Denoise:
         chunk = chunk.reshape(chunk.shape[1])
         return chunk.cpu().detach().numpy()
     def infrence(self,chunk:t.Tensor) -> t.Tensor:
+        "have to return have [1,None]"
         raise "NOT IMPLEMENTED"
     
     def __call__(self, audio:np.ndarray) -> np.ndarray:
