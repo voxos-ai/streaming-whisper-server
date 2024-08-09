@@ -12,4 +12,4 @@ class SpeechBrainDenoise(Denoise):
     def infrence(self, chunk: t.Tensor) -> t.Tensor:
         chunk = chunk.to(self.device)
         chunk = self.model.separate_batch(chunk)
-        return chunk.cpu()[0]
+        return chunk.cpu()[:, :, 0]
