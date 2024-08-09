@@ -44,8 +44,6 @@ class TranscriptionServer:
             raise("without model list we can't start server")
         
         if self.denoise:
-            # self.noise_deduction_model:Demucs = LoadModel()
-            # self.infrence_mech:BasicInferenceMechanism = BasicInferenceMechanism(self.noise_deduction_model)
             self.infrence_mech:InferenceMechanism = InferenceMechanism(denoise_model)
         else:
             self.noise_deduction_model = None
@@ -58,22 +56,24 @@ class TranscriptionServer:
         if __hotwords == None: __hotwords = []
         if type(__hotwords) == str: __hotwords = __hotwords.split(",")
         model_id = options["model"]
-        #TODO: make checks
-
-        # if options["model"] not in self.model_list:
-        #     logger.info("model name is not  in model list so getting revert to default model")
-        #     model = f"./ASR/{self.model_list[self.default_model_index]}"
-        # else:
-        #     logger.info("model is detected")
-        #     model =  f"./ASR/{options['model']}"
-        #     self.model = options["model"]
         logger.info(f"loaded model {model_id}")
-        model = self.model_hash_table[model_id]
-        logger.info(model)
+        model_loaded = True
+        model = self.model_hash_table.get(model_id)
+        if model == None:
+            # for back word capability if model is not pre loaded
+            model_loaded = False
+            if options["model"] not in self.model_list:
+                logger.info("model name is not  in model list so getting revert to default model")
+                model = f"./ASR/{self.model_list[self.default_model_index]}"
+            else:
+                logger.info("model is detected")
+                model =  f"./ASR/{options['model']}"
+                self.model = options["model"]
         # making the FasterWhisper server
         try:
             client:ServeClientFasterWhisper = ServeClientFasterWhisper(
                 websocket,
+                model_loaded,
                 language=options["language"],
                 task=options["task"],
                 client_uid=options["uid"],
@@ -278,7 +278,7 @@ class TranscriptionServer:
 
 
 class ServeClientFasterWhisper(ServeClientBase):
-    def __init__(self, websocket,model_name:str, model:WhisperModel, hotwords=None, task="transcribe", device=None, language=None, client_uid=None,
+    def __init__(self, websocket, model_loaded:str, model_name:str, model:WhisperModel, hotwords=None, task="transcribe", device=None, language=None, client_uid=None,
                  initial_prompt=None, vad_parameters=None, use_vad=True, no_speech_prob:float = 0.30):
         """
         Initialize a ServeClient instance.
@@ -301,13 +301,6 @@ class ServeClientFasterWhisper(ServeClientBase):
             "tiny", "tiny.en", "base", "base.en", "small", "small.en",
             "medium", "medium.en", "large-v2", "large-v3",
         ]
-        # if not os.path.exists(model):
-        #     self.model_size_or_path = self.check_valid_model(model)
-        # else:
-        #     self.model_size_or_path = model
-        # self.language = "en" if self.model_size_or_path.endswith("en") else language
-
-        # TODO: fix the language
         self.language = "en"
         self.model_name = model_name
         self.task = task
@@ -317,20 +310,28 @@ class ServeClientFasterWhisper(ServeClientBase):
 
         logger.info(f"no speech prob: {self.no_speech_thresh}")
 
-        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # if self.model_size_or_path is None:
-        #     return
-        # __ = time.time()
-        # self.transcriber = WhisperModel(
-        #     self.model_size_or_path,
-        #     device=device,
-        #     compute_type="int8" if device == "cpu" else "float16",
-        #     local_files_only=False,
-        # )
-        # logger.info(f"loaded {self.model_size_or_path} in: {time.time() - __}")
-        logger.info(f"whisper: {model}")
-        self.transcriber:WhisperModel = model
+        
+        if model_loaded:
+            self.transcriber:WhisperModel = model
+        else:
+            if not os.path.exists(model):
+                self.model_size_or_path = self.check_valid_model(model)
+            else:
+                self.model_size_or_path = model
+            self.language = "en" if self.model_size_or_path.endswith("en") else language
+            if self.model_size_or_path is None:
+                return
+            __ = time.time()
+            self.transcriber = WhisperModel(
+                self.model_size_or_path,
+                device=device,
+                compute_type="int8" if device == "cpu" else "float16",
+                local_files_only=False,
+            )
+            logger.info(f"loaded {self.model_size_or_path} in: {time.time() - __}")
+
         self.use_vad = use_vad
 
 
