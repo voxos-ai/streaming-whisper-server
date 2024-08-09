@@ -6,10 +6,11 @@ import time
 import asyncio
 import torch
 import uuid
+from .model_load_map import ModelStore
 
 
-class SimpleWebServer(threading.Thread):
-    def __init__(self,model_hash_table:dict,model_list:list,port=6700,host="0.0.0.0") -> None:
+class WarmUPService(threading.Thread):
+    def __init__(self,model_hash_table:ModelStore,model_list:list,port=6700,host="0.0.0.0") -> None:
         threading.Thread.__init__(self)
         # THREAD NAME
         self.name = "web server"
@@ -63,7 +64,7 @@ class SimpleWebServer(threading.Thread):
                     compute_type="int8" if self.device == "cpu" else "float16",
                     local_files_only=False,
                 )
-            self.model_hash_table[model_id] = model
+            self.model_hash_table.add(model_id,model)
             return model_id
         except Exception as e:
             return None

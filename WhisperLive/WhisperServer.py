@@ -12,7 +12,7 @@ from WhisperLive.whisper_live.transcriber import WhisperModel
 from WhisperLive.whisper_live.server import ServeClientBase, ClientManager
 from WhisperLive.whisper_live.HypothesisBuffer import HypothesisBufferPrefix
 from .denoise import LoadModel, Demucs, BasicInferenceMechanism, InferenceMechanism
-from .model_warm import SimpleWebServer
+from .model_warm import WarmUPService, ModelStore
 import traceback
 from .logger_config import configure_logger
 
@@ -25,7 +25,7 @@ class TranscriptionServer:
     def bytes_to_float_array(audio:np.ndarray):
         return audio.astype(np.float32) / 32768.0
     
-    def __init__(self,use_vad=True,denoise=False, denoise_model = "FaceBookDenoise" ,hotwords=None,model_list=[],no_speech_prob:float=0.45):
+    def __init__(self,use_vad=True,denoise=False, denoise_model = "FaceBookDenoise" ,hotwords=None,model_list=[],no_speech_prob:float=0.45,warmup_port=6700):
         self.client_manager = ClientManager()
         
         self.no_voice_activity_chunks = 0
@@ -37,8 +37,11 @@ class TranscriptionServer:
         self.no_speech_prob = no_speech_prob
 
 
-        self.model_hash_table = dict()
-        self.webserver = SimpleWebServer(model_hash_table=self.model_hash_table,model_list=self.model_list)
+        # make this thread safe
+        self.model_hash_table = ModelStore()
+        
+        self.warmup_port = warmup_port
+        self.webserver = WarmUPService(model_hash_table=self.model_hash_table,model_list=self.model_list,port=self.warmup_port)
         self.webserver.start()
         if model_list == None or len(model_list) <= 0:
             raise("without model list we can't start server")
@@ -144,7 +147,7 @@ class TranscriptionServer:
         
         except Exception as e:
             print(traceback.format_exc())
-            logger.info(f"{self.model_hash_table}")
+            # logger.info(f"{self.model_hash_table}")
             logger.error(f"Error during new connection initialization: {str(e)}")
             return False
 
@@ -271,8 +274,10 @@ class TranscriptionServer:
         Args:
             websocket: The websocket associated with the client to be cleaned up.
         """
-        if self.client_manager.get_client(websocket):
-            self.model_hash_table.pop(self.client_manager.get_client(websocket).model_name)
+        client = self.client_manager.get_client(websocket)
+        if client:
+            if client.model_loaded:
+               self.model_hash_table.pop(client.model_name)
             self.client_manager.remove_client(websocket)
 
 
@@ -312,8 +317,8 @@ class ServeClientFasterWhisper(ServeClientBase):
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        
-        if model_loaded:
+        self.model_loaded = model_loaded
+        if self.model_loaded:
             self.transcriber:WhisperModel = model
         else:
             if not os.path.exists(model):
