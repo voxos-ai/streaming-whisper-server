@@ -6,12 +6,12 @@ import time
 
 class Client(BasicWhisperClient):
     def __init__(self, host: str, port: int) -> None:
-        super().__init__(host, port, "tiny")
+        super().__init__(host, port, "whisper_tiny")
     def onTranscript(self, segment: dict):
         super().onTranscript(segment)
         print(segment)
 __ = time.time()
-client = Client("127.0.0.1",9001)
+client = Client("127.0.1.1",4231)
 client.MakeConnectionToServer()
 print(client.retrive_token)
 print(f"TIME FOR WEBSOCKET CONNECTION: {time.time()- __}")
