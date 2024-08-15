@@ -158,13 +158,13 @@ class Demucs(nn.Module):
         x = x[..., :length]
         return std * x
 
-def LoadModel(path:str="./NoiseWeights/model.th") -> Demucs:
+def LoadModel(path:str="./NoiseWeights/model.th",hidden=48) -> Demucs:
     # it can be modify to load weight once
     try:
         wt_model = th.load(path)
     except Exception as e:
         logger.error(f"not able to load denoise model at path = {path} ERROR:[{e}]")
         return None
-    model = Demucs()
+    model = Demucs(hidden=hidden)
     model.load_state_dict(wt_model)
     return model

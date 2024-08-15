@@ -3,7 +3,8 @@ import torch as t
 import numpy as np
 import torchaudio
 import time
-
+import requests
+from tqdm import tqdm
 
 
 logger = configure_logger(__name__)
@@ -47,3 +48,20 @@ class Denoise:
     def _init(self,**kwags):
         logger.info(f"MODEL LOADING TIME: {time.time() - self._time}")
         logger.info(f"INFO: {kwags}")
+    
+    def download_model(self,url:str,path:str):
+        "NOTE: location context inside the server Folder"
+        #download logic
+        response = requests.get(url, stream=True)
+
+        # Sizes in bytes.
+        total_size = int(response.headers.get("content-length", 0))
+        block_size = 1024
+
+        with tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
+            with open(path, "wb") as file:
+                for data in response.iter_content(block_size):
+                    progress_bar.update(len(data))
+                    file.write(data)
+        if total_size != 0 and progress_bar.n != total_size:
+            raise RuntimeError("Could not download file")

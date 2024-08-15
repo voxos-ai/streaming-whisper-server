@@ -48,6 +48,7 @@ class TranscriptionServer:
         
         if self.denoise:
             self.infrence_mech:InferenceMechanism = InferenceMechanism(denoise_model)
+            logger.info(f"LOADED DENOISE MODEL: {denoise_model}")
         else:
             self.noise_deduction_model = None
             self.infrence_mech = None
