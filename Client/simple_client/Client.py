@@ -11,7 +11,7 @@ class Client(BasicWhisperClient):
         super().onTranscript(segment)
         print(segment)
 __ = time.time()
-client = Client("127.0.1.1",4231)
+client = Client("127.0.0.1",4231)
 client.MakeConnectionToServer()
 print(client.retrive_token)
 print(f"TIME FOR WEBSOCKET CONNECTION: {time.time()- __}")

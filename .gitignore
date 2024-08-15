@@ -6,3 +6,6 @@ Server/ASR/whisper_tiny_ct
 Server/ASR/tiny
 env/
 *.wav
+Server/NoiseWeights/master64.th
+Server/NoiseWeights/dns64.th
+Server/NoiseWeights/dns48.th
