@@ -33,6 +33,7 @@ import os
 if __name__ == "__main__":
     
     ASRs = [i.name for i in os.scandir("./ASR") if i.is_dir()]
+    print(ASRs)
     with open("./hotwords",'r') as file:
         hotwords = [i for i in file.readlines() if (i.strip()) != 0]
     if len(hotwords) <= 0:
@@ -47,9 +48,13 @@ if __name__ == "__main__":
                         type=int,
                         default=9090,
                         help="Websocket port to run the server on.")
+    parser.add_argument('--portwarm', '-pw',
+                        type=int,
+                        default=6700,
+                        help="for pre-warm up model")
     args = parser.parse_args()
     if args.denoise in denoise_model:
-        server = TranscriptionServer(use_vad=True,denoise=True,denoise_model=args.denoise,hotwords=hotwords,model_list=ASRs,no_speech_prob=0.45)
+        server = TranscriptionServer(use_vad=True,denoise=True,denoise_model=args.denoise,hotwords=hotwords,model_list=ASRs,no_speech_prob=0.45,warmup_port=args.portwarm)
         server.run(
             "0.0.0.0",
             port=args.port)

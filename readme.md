@@ -9,8 +9,9 @@ Features
 - Real-Time Processing: Supports real-time audio processing for immediate feedback.
 - Multi-Threading: Handles multiple requests simultaneously for efficient processing.
 - Hot-word: you can specify the hot word in `hotword` file inside the server folder by which it can focus on particular words accoring to you needs
+- Model WarmUP: you can pred load the model in the memory befor you connect to it via websocket, by doing this we can get improvment of 100~200 ms in first response and also decrease the connection init time
 
-![alt text](./img/ar.jpg "Title")  
+![alt text](./img/arv2.png "Title")  
 
 ## Install Instruction
 ```shell
@@ -37,12 +38,44 @@ project have three folder ASR, NoiseWeights, VAD and two file hotwords and Serve
 ct2-transformers-converter --model <model: openai/whisper-tiny> --copy_files preprocessor_config.json --output_dir <output_dir: ASR/whisper_tiny_ct> --quantization float16
 ```
 note: add it on ASR folder
+## WarmUP
+```python
+import requests
+
+res = requests.post("http://127.0.0.1:6700/load-model/",json={
+    "model-name":"tiny",
+    "mode":"auto"
+})
+
+print(res.status_code)
+model = res.json()["model-id"]
+print(model)
+```
+you have to use model id insted of model name, and you can use pre-loaded model
 ## Run server
+
+### Normal RUN
 ```
 > cd my-project
 > ls
 ASR  NoiseWeights hotwords Server.py  VAD
 > python3 Server.py -p 9000
+```
+### With Diffrent denoise
+```
+> cd my-project
+> ls
+ASR  NoiseWeights hotwords Server.py  VAD
+> python3 Server.py -p 9000 -deno FaceBookDenoiseM64
+```
+there are three denoiser `FaceBookDenoiseM64,FaceBookDenoise,  DeepFilterNetDenoise`, by default FaceBookDenoise is selected
+
+### Change the WarmUP service PORT 
+```
+> cd my-project
+> ls
+ASR  NoiseWeights hotwords Server.py  VAD
+> python3 Server.py -p 9000 -pw 7899
 ```
 there is no memory limiter in package , so be careful load up many client parallel load whisper models parallely in memory so be careful
 ![alt text](./img/cd.png "Title")
